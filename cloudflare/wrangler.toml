@@ -1,0 +1,29 @@
+name = "dark-tunnel-bot"
+main = "src/index.ts"
+compatibility_date = "2024-12-05"
+
+# The container keeps the Telegram bot (Pyrogram) process running.
+# It has no HTTP surface of its own; the Worker below only exists to
+# start it, keep it alive via a Durable Object, and ping it on a cron
+# schedule so Cloudflare does not put it to sleep for being idle.
+[[containers]]
+class_name = "BotContainer"
+image = "../Dockerfile"
+max_instances = 1
+
+[[durable_objects.bindings]]
+name = "BOT_CONTAINER"
+class_name = "BotContainer"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["BotContainer"]
+
+# Ping every minute so the container's sleep_after window never elapses.
+[triggers]
+crons = ["* * * * *"]
+
+[vars]
+# Non-secret vars can go here. Secrets (API_ID, API_HASH, BOT_TOKEN) are
+# set with `wrangler secret put <NAME>` and read by the container as
+# environment variables passed through the Durable Object binding.
